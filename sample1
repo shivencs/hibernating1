@@ -1,0 +1,38 @@
+# hibernating1
+package package2;
+
+import java.util.List;
+
+public class ManageCRA {
+	
+   private static int rownum;
+		
+	public static void main(String[] args) {
+		
+		try{
+		       SessionUtilities.createSessionFactory();
+		      }catch (Throwable ex) {
+		         System.err.println("Failed to create sessionFactory object." + ex);
+		         throw new ExceptionInInitializerError(ex); 
+		      }
+		    
+		      List<Object[]> groupList1= DataFetcher.fetchData("select Circle,AccNo,CustName,OpenBal,Debit,Credit,CloseBal from WalletCraTable where AccNo in (1000020440,1000020484,1000020542,1000020632,1000020676,1000020086,1000020155,1000020224,1000020279,1000020326,1000020371,1000020439,1000020495,1000020553,1000020609,1000020654,1000000025,1000000081,1000000150,1000000229,1000000285,1000000387,1000000423,1000000547) order by customer_name,account_number");
+		      
+		      ExcelMaker.CRAExcel(groupList1,rownum,"Wallet CRA");
+		      
+		      List<Object[]> groupList2= DataFetcher.fetchData("select Circle,AccNo,CustName,OpenBal,Debit,Credit,CloseBal from BankCraTable where AccNo in (1000000036,1000000070,1000000116,1000000161,1000000207,1000000230,1000000241,1000000263,1000000285,1000000309,1000020019,1000020020,1000020042,1000020053,1000020075,1000020097,1000020100,1000020111,1000020133,1000020144,1000020166,1000020177,1000020199,1000020202) order by customer_name,account_number");
+		    
+		      ExcelMaker.CRAExcel(groupList2,rownum,"Bank CRA");
+		    		  
+		      MailSender.SendAttachmentMail();
+		   }
+	
+
+}
+		      
+		   
+		   
+
+
+		
+
