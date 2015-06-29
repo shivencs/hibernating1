@@ -1,0 +1,394 @@
+package package2;
+
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.List;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFFont;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.hssf.util.CellRangeAddress;
+import org.apache.poi.hssf.util.CellReference;
+import org.apache.poi.hssf.util.HSSFColor;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.FormulaEvaluator;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+
+@SuppressWarnings("deprecation")
+public class ExcelMaker {
+	private static HSSFWorkbook wb;
+	private static HSSFSheet sheet1;
+	private static HSSFCellStyle headerStyle;
+	private static HSSFRow row;
+	@SuppressWarnings("unused")
+	private static HSSFCell cell;
+	private static int rownum;
+	private static FormulaEvaluator evaluator;
+		
+	public static HSSFCellStyle styleHeader(HSSFCellStyle headerStyle){
+       // styling the header
+        HSSFFont headerFont = wb.createFont();
+        headerFont.setBoldweight(HSSFFont.BOLDWEIGHT_BOLD);
+        headerStyle.setFillPattern(HSSFCellStyle.SOLID_FOREGROUND);
+        headerStyle.setFillForegroundColor(HSSFColor.YELLOW.index);
+        headerStyle.setFillBackgroundColor(HSSFColor.WHITE.index);
+        headerStyle.setFont(headerFont);
+        headerStyle.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+        return headerStyle;
+	}
+	
+	public static void createHeader(HSSFRow row){
+		   row.createCell(0).setCellValue("Circle");
+       row.createCell(1).setCellValue("Account No");
+       row.createCell(2).setCellValue("Account Name");
+       row.createCell(3).setCellValue("Opening Balance");
+       row.createCell(4).setCellValue("Debit Amt");
+       row.createCell(5).setCellValue("Credit Amt");
+       row.createCell(6).setCellValue("Closing Balance");
+	   }
+	
+	public static void insertHeading(){
+		 // Filling up Row 3 and Cell 4 in the excel sheet
+        HSSFRow row = sheet1.createRow(0);
+        HSSFCell title = row.createCell(0);
+        title.setCellStyle(headerStyle);
+        
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, -1);
+        
+        SimpleDateFormat ft = new SimpleDateFormat("E dd-MMM-yyyy");
+        title.setCellValue("CRA ACCOUNT DETAILS AS ON " + ft.format(cal.getTime()));
+       // System.out.println("Yesterday's date = "+ cal.getTime());
+        sheet1.addMergedRegion(new CellRangeAddress(0,0,0,6));
+                 
+        row = sheet1.createRow(1);
+        createHeader(row);
+	}
+
+	public static void fillAcctDetails(HSSFSheet sheet1, HSSFRow row,List<Object[]> groupList,int rowno){
+		rownum = rowno;  
+		for(Object[] arr : groupList) 
+	         {
+	        	 row = sheet1.createRow(rownum);
+	        	 row.createCell(0).setCellValue(String.valueOf(arr[0]));
+              row.createCell(1).setCellValue(String.valueOf(arr[1]).substring(7));
+                row.createCell(2).setCellValue(String.valueOf(arr[2]));
+                row.createCell(3).setCellValue((Double)arr[3]);
+                row.createCell(4).setCellValue((Double)arr[4]);
+                row.createCell(5).setCellValue((Double)arr[5]);
+                row.createCell(6).setCellValue((Double)arr[6]);
+            
+               rownum++;  
+            
+	         }
+	   }
+	
+	public static void insertTotals(String sheetname){
+		//Total Debit Cell
+        row = sheet1.createRow(rownum); //row 26
+        HSSFCell cell = row.createCell(4);		          
+        cell.setCellType(Cell.CELL_TYPE_FORMULA); // Debit SUM formula
+        if(sheetname.equals("Wallet CRA")){
+        cell.setCellFormula("SUM(E3:E9)+SUM(E11:E26)"); 
+        }
+        else{
+            cell.setCellFormula("SUM(E3:E23)+SUM(E24+E26)"); 
+        }
+        	
+        evaluator = wb.getCreationHelper().createFormulaEvaluator();
+        evaluator =  wb.getCreationHelper().createFormulaEvaluator();
+        evaluator.evaluateFormulaCell(cell);
+        //cell.setCellValue("SUM(E2:E25)");
+        
+        
+        //Total Credit Cell
+        cell = row.createCell(5);
+        cell.setCellType(Cell.CELL_TYPE_FORMULA);
+        if(sheetname.equals("Wallet CRA")){
+            cell.setCellFormula("SUM(F3:F9)+SUM(F11:F26)"); 
+            }
+            else{
+                cell.setCellFormula("SUM(F3:F23)+SUM(F24+F26)"); 
+            } //Credit SUM formula
+        evaluator.evaluateFormulaCell(cell);
+        // cell.setCellValue("SUM(F2:F25)");
+        
+        //TOTALS Cell
+        rownum++;
+        row = sheet1.createRow(rownum); //row 27
+        cell = row.createCell(1);		         
+        cell.setCellStyle(headerStyle);
+        
+        cell = row.createCell(2);
+        cell.setCellValue("Totals (excluding Corporate Circle)");
+        cell.setCellStyle(headerStyle);
+        
+        cell = row.createCell(3);
+        cell.setCellType(Cell.CELL_TYPE_FORMULA); //Opening Bal
+        if(sheetname.equals("Wallet CRA")){
+            cell.setCellFormula("SUM(D3:D9)+SUM(D11:D26)"); 
+            }
+            else{
+                cell.setCellFormula("SUM(D3:D23)+SUM(D24+D26)"); 
+            }       
+        cell.setCellStyle(headerStyle);
+        evaluator.evaluateFormulaCell(cell);
+       
+        cell = row.createCell(4);		         
+        cell.setCellStyle(headerStyle);
+        
+        cell = row.createCell(5);		         
+        cell.setCellStyle(headerStyle);
+
+        
+        cell = row.createCell(6);
+        cell.setCellType(Cell.CELL_TYPE_FORMULA); //Closing Bal
+        if(sheetname.equals("Wallet CRA")){
+            cell.setCellFormula("SUM(G3:G9)+SUM(G11:G26)"); 
+            }
+            else{
+                cell.setCellFormula("SUM(G3:G23)+SUM(G24+G26)"); 
+            }
+        cell.setCellStyle(headerStyle);
+        evaluator.evaluateFormulaCell(cell);
+
+	}
+	
+	public static boolean insertControlAcctSect(String sheetname){
+		 //DAILY CRA CONTROL ACCOUNT Section
+        HSSFCellStyle errorStyle = wb.createCellStyle();
+        HSSFFont errorFont = wb.createFont();
+        
+        rownum= rownum+2; //row 32
+        row = sheet1.createRow(rownum);
+        row.createCell(1).setCellValue("DAILY CRA CONTROL ACCOUNT");
+        sheet1.addMergedRegion(new CellRangeAddress(29,29,1,6)); 
+        row.getCell(1).setCellStyle(headerStyle);
+       
+    		         		         
+        CellReference ref = new CellReference("D28");
+        HSSFRow r = sheet1.getRow(ref.getRow());
+      	 Cell c = r.getCell(ref.getCol());
+      	 evaluator.evaluateFormulaCell(c);	
+      	 
+      	 
+      	double D28 = c.getNumericCellValue();
+      	 
+      	 D28 = Math.round(D28*100.0)/100.0;
+	       	
+        ref = new CellReference("G28");
+         r = sheet1.getRow(ref.getRow());
+      	  c = r.getCell(ref.getCol());
+      	 evaluator.evaluateFormulaCell(c);
+       double G28 = c.getNumericCellValue();
+	       	
+       G28 = Math.round(G28*100.0)/100.0;
+      	
+    
+   	rownum+=2; //row 37
+      	row = sheet1.createRow(rownum);
+        row.createCell(1).setCellValue("1");
+        row.createCell(2).setCellValue("Total credit transactions for the day");
+       
+        ref = new CellReference("F27");
+         r = sheet1.getRow(ref.getRow());
+      	  c = r.getCell(ref.getCol());
+      	 evaluator.evaluateFormulaCell(c);
+      	 
+       double F27 = c.getNumericCellValue();
+       HSSFCell cell1=row.createCell(3);
+      	cell1.setCellValue(F27);
+      	
+      	F27 = Math.round(F27*100.0)/100.0;
+      	
+      		       	
+      	rownum+=2; //row 39
+      	row = sheet1.createRow(rownum);
+        row.createCell(1).setCellValue("2");
+        row.createCell(2).setCellValue("Total debit transactions for the day");
+       
+        ref = new CellReference("E27");
+         r = sheet1.getRow(ref.getRow());
+      	  c = r.getCell(ref.getCol());
+      	 evaluator.evaluateFormulaCell(c);
+    	double E27 = c.getNumericCellValue();
+      	HSSFCell cell2=row.createCell(3);
+      	cell2.setCellValue(E27);
+      	
+   	E27 = Math.round(E27*100.0)/100.0;
+        
+      	if(Double.compare(F27,-E27)!=0)
+      	{
+      		errorFont.setColor(HSSFFont.COLOR_RED);
+      		errorStyle.setFont(errorFont); 
+      		cell1.setCellStyle(errorStyle);
+      		cell2.setCellStyle(errorStyle);
+      		}
+      	
+      	rownum+=2; //row 39
+      	row = sheet1.createRow(rownum);
+        row.createCell(1).setCellValue("3");
+        row.createCell(2).setCellValue("Credit transactions for Corporate Circle Account");
+      	
+        if(sheetname.equals("Wallet CRA")){
+        ref = new CellReference("F10");
+        }
+        else if(sheetname.equals("Bank CRA")){
+            ref = new CellReference("F25");
+        }
+	
+         r = sheet1.getRow(ref.getRow());
+      	  c = r.getCell(ref.getCol());
+      	 evaluator.evaluateFormulaCell(c);
+    	double F10 = c.getNumericCellValue();
+      	HSSFCell cell3=row.createCell(3);
+      	cell3.setCellValue(F10);
+      	
+      	if(Double.compare(E27,-F10)!=0)
+      	{
+      		errorFont.setColor(HSSFFont.COLOR_RED);
+      		errorStyle.setFont(errorFont); 
+      		cell2.setCellStyle(errorStyle);
+      		cell3.setCellStyle(errorStyle);
+      		}
+      	
+      	 boolean discrepancy=false;
+        if(Double.compare(D28,G28)!=0 || Double.compare(-E27,F27)!=0)
+        {
+        	discrepancy = true;
+        }
+        return discrepancy;
+	}
+	
+	public static void insertMismatchSect(boolean discrepancy,String sheetname){
+	 	// MISMATCH IF ANY Section
+       	
+       	rownum+=2;
+       	row = sheet1.createRow(rownum);
+         row.createCell(0).setCellValue("MISMATCH IF ANY");
+         sheet1.addMergedRegion(new CellRangeAddress(rownum,rownum,0,6)); 
+         row.getCell(0).setCellStyle(headerStyle);
+       	      	
+        
+	         rownum++;
+	         row = sheet1.createRow(rownum);
+	         createHeader(row);
+                
+                // Checking Mismatch condition
+            
+                if(discrepancy == true){
+                	
+                	double debit,credit,closebal,openbal;
+                	
+                	Sheet sheet = wb.getSheet(sheetname);
+                	for (int i = 2; i <= 26; i++) {
+                	    Row cpa_row = sheet.getRow(i);
+                    	 if(cpa_row.getRowNum()==0 || cpa_row.getRowNum()==1 || (cpa_row.getRowNum()==9 && sheetname.equals("Wallet CRA")) || (cpa_row.getRowNum()==24 && sheetname.equals("Bank CRA")))
+                    	 {
+                    	    continue; //skip the rows if row number is 0 or 1
+                    	 }
+                    	else if(cpa_row.getRowNum()==26)
+                    	 {
+                    	    break; //skip the rows if row number is 0 or 1
+                    	 }
+                    	 else{
+                       Cell cpa_cell = cpa_row.getCell(3);
+                       openbal = cpa_cell.getNumericCellValue();
+                       cpa_cell = cpa_row.getCell(6);
+                       closebal = cpa_cell.getNumericCellValue();
+                       cpa_cell = cpa_row.getCell(4);
+                       debit = cpa_cell.getNumericCellValue();
+                       cpa_cell = cpa_row.getCell(5);
+                       credit = cpa_cell.getNumericCellValue();
+                       
+                       if(Double.compare(openbal,closebal)!=0 || Double.compare(debit,-credit)!=0)
+                       {
+                    	   rownum++;
+                    	   row = sheet1.createRow(rownum);
+                    	   row.createCell(0).setCellValue(cpa_row.getCell(0).getStringCellValue());
+   	                    row.createCell(1).setCellValue(cpa_row.getCell(1).getStringCellValue().substring(7));
+   	                    row.createCell(2).setCellValue(cpa_row.getCell(2).getStringCellValue());
+   	                    row.createCell(3).setCellValue(cpa_row.getCell(3).getNumericCellValue());
+   	                    row.createCell(4).setCellValue(cpa_row.getCell(4).getNumericCellValue());
+   	                    row.createCell(5).setCellValue(cpa_row.getCell(5).getNumericCellValue());
+   	                    row.createCell(6).setCellValue(cpa_row.getCell(6).getNumericCellValue());
+                       }
+                    }
+                    }
+                	
+                }
+
+	}
+	
+	public static void autosizeColumn(int startcol,int endcol){
+		   for(int i=startcol;i<=endcol;i++)
+		   {
+			   sheet1.autoSizeColumn(i);
+		   }
+	   } 
+	   
+	public static void CRAExcel(List<Object[]> groupList,int rownum,String sheetname){
+		 FileOutputStream fileOut = null;
+      
+            //Creating a new WB and Sheet
+		 		if(sheetname.equals("Wallet CRA"))
+		 		{
+                 wb = new HSSFWorkbook();
+                 try
+                 {
+                   fileOut = new FileOutputStream("C:\\excel\\" + "CRA" + ".xls");
+                 }
+              catch (FileNotFoundException e)
+                 {
+                   e.printStackTrace();
+                 }
+              
+		 		}
+		 		else{
+		 			//wb = new HSSFWorkbook();
+	                 try
+	                 {
+	                   fileOut = new FileOutputStream("C:\\excel\\" + "CRA" + ".xls");
+	                 }
+	              catch (FileNotFoundException e)
+	                 {
+	                   e.printStackTrace();
+	                 }
+				
+		 		}
+                 sheet1 = wb.createSheet(sheetname);
+                 headerStyle = wb.createCellStyle();
+                 headerStyle = styleHeader(headerStyle);
+                           	                        
+              
+                 insertHeading();
+                 
+                 rownum=2;
+                 fillAcctDetails(sheet1, row, groupList, rownum);
+                 
+                 insertTotals(sheetname);
+                 
+                 boolean discr = insertControlAcctSect(sheetname);
+                 
+                 insertMismatchSect(discr,sheetname);
+                 
+              	 autosizeColumn(0,6);   
+              	 
+              	try {
+					wb.write(fileOut);
+					fileOut.flush();
+		            fileOut.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+              
+              
+	  }
+}
